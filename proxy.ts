@@ -7,10 +7,16 @@ const PUBLIC_PATHS = ["/login", "/signup", "/pending", "/auth/callback"]
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // 환경변수 없으면 통과
+  if (!supabaseUrl || !supabaseKey) {
+    return response
+  }
+
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
@@ -21,34 +27,24 @@ export async function proxy(request: NextRequest) {
           )
         },
       },
+    })
+
+    const { data: { user } } = await supabase.auth.getUser()
+    const pathname = request.nextUrl.pathname
+    const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+
+    // 비로그인 → 로그인 페이지로
+    if (!user && !isPublic) {
+      return NextResponse.redirect(new URL("/login", request.url))
     }
-  )
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const pathname = request.nextUrl.pathname
-  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
-
-  // 비로그인 → 로그인 페이지로
-  if (!user && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url))
-  }
-
-  // 로그인 상태에서 로그인/회원가입 접근 → 홈으로
-  if (user && (pathname === "/login" || pathname === "/signup")) {
-    return NextResponse.redirect(new URL("/", request.url))
-  }
-
-  // 로그인 상태에서 승인 여부 확인 (pending 페이지 제외)
-  if (user && !isPublic) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("status")
-      .eq("id", user.id)
-      .single()
-
-    if (profile?.status === "pending" || profile?.status === "rejected") {
-      return NextResponse.redirect(new URL("/pending", request.url))
+    // 로그인 상태에서 로그인/회원가입 접근 → 홈으로
+    if (user && (pathname === "/login" || pathname === "/signup")) {
+      return NextResponse.redirect(new URL("/", request.url))
     }
+  } catch {
+    // 인증 오류 시 통과
+    return response
   }
 
   return response
