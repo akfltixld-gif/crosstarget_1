@@ -9,14 +9,11 @@ export async function proxy(request: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const pathname = request.nextUrl.pathname
+  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
 
-  // 환경변수 없으면 로그인으로
   if (!supabaseUrl || !supabaseKey) {
-    const pathname = request.nextUrl.pathname
-    const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
-    if (!isPublic) {
-      return NextResponse.redirect(new URL("/login", request.url))
-    }
+    if (!isPublic) return NextResponse.redirect(new URL("/login", request.url))
     return response
   }
 
@@ -35,8 +32,6 @@ export async function proxy(request: NextRequest) {
     })
 
     const { data: { user } } = await supabase.auth.getUser()
-    const pathname = request.nextUrl.pathname
-    const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
 
     // 비로그인 → 로그인 페이지로
     if (!user && !isPublic) {
@@ -47,12 +42,21 @@ export async function proxy(request: NextRequest) {
     if (user && (pathname === "/login" || pathname === "/signup")) {
       return NextResponse.redirect(new URL("/", request.url))
     }
-  } catch {
-    const pathname = request.nextUrl.pathname
-    const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
-    if (!isPublic) {
-      return NextResponse.redirect(new URL("/login", request.url))
+
+    // 로그인 상태에서 승인 여부 확인 (public 페이지 제외)
+    if (user && !isPublic) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("id", user.id)
+        .single()
+
+      if (!profile || profile.status === "pending" || profile.status === "rejected") {
+        return NextResponse.redirect(new URL("/pending", request.url))
+      }
     }
+  } catch {
+    if (!isPublic) return NextResponse.redirect(new URL("/login", request.url))
   }
 
   return response
