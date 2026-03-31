@@ -4,57 +4,55 @@ export const revalidate = 3600 // 1시간 캐시
 
 const BASE = "https://www.i-boss.co.kr"
 const LIST_URL = `${BASE}/ab-7214`
+const HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml",
+  "Accept-Language": "ko-KR,ko;q=0.9",
+}
+
+// 최신 뉴스클리핑 URL 찾기
+async function getLatestClippingUrl(): Promise<string | null> {
+  const res = await fetch(LIST_URL, { headers: HEADERS, next: { revalidate: 3600 } })
+  if (!res.ok) return null
+  const html = await res.text()
+  // title 속성에서 "뉴스클리핑" 포함된 /ab-2877-XXXXX 링크 찾기
+  const m = html.match(/href="(\/ab-2877-\d+)"\s+title="[^"]*뉴스클리핑[^"]*"/)
+  return m ? BASE + m[1] : null
+}
+
+// 뉴스클리핑 기사에서 numbered <strong> 제목 추출
+async function parseClipping(url: string) {
+  const res = await fetch(url, { headers: HEADERS, next: { revalidate: 3600 } })
+  if (!res.ok) return []
+  const html = await res.text()
+
+  // 날짜 추출 (제목에서)
+  const dateM = html.match(/(\d{4}\.\d{2}\.\d{2})/)
+  const date = dateM ? dateM[1].slice(5) : "" // "MM.DD"
+
+  // <strong>N. 제목</strong> 패턴 추출
+  const pattern = /<strong>(\d+)\.\s*([^<]{5,100})<\/strong>/g
+  const items: { title: string; link: string; source: string; date: string }[] = []
+  let match
+  while ((match = pattern.exec(html)) !== null) {
+    const title = match[2].trim()
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+    if (!title) continue
+    items.push({ title, link: url, source: "아이보스 뉴스클리핑", date })
+    if (items.length >= 10) break
+  }
+  return items
+}
 
 export async function GET() {
   try {
-    const res = await fetch(LIST_URL, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "ko-KR,ko;q=0.9",
-      },
-      next: { revalidate: 3600 },
-    })
-
-    if (!res.ok) return NextResponse.json({ items: [] })
-
-    const html = await res.text()
-
-    // 기사 링크 추출: /ab-2877-NNNNN 형태
-    const linkPattern = /href="(\/ab-2877-(\d+))"[^>]*>([^<]{5,120})</g
-    const items: { title: string; link: string; source: string; date: string }[] = []
-    const seen = new Set<string>()
-
-    let match
-    while ((match = linkPattern.exec(html)) !== null) {
-      const path = match[1]
-      const title = match[3].trim()
-        .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#039;/g, "'")
-
-      if (!title || title.length < 5 || seen.has(path)) continue
-      // 광고성/불필요한 항목 제외
-      if (/^\d+$/.test(title) || title.includes("댓글") || title.includes("조회")) continue
-
-      seen.add(path)
-      items.push({ title, link: BASE + path, source: "아이보스", date: "" })
-      if (items.length >= 12) break
+    const clippingUrl = await getLatestClippingUrl()
+    if (clippingUrl) {
+      const items = await parseClipping(clippingUrl)
+      if (items.length > 0) return NextResponse.json({ items })
     }
-
-    // 날짜 추출 시도 (pubDate 형식)
-    const datePattern = /(\d{2}\.\d{2})|(\d{1,2}:\d{2})/g
-    const dates: string[] = []
-    let dm
-    while ((dm = datePattern.exec(html)) !== null) {
-      dates.push(dm[0])
-    }
-    items.forEach((item, i) => {
-      if (dates[i]) item.date = dates[i]
-    })
-
-    if (items.length > 0) return NextResponse.json({ items })
   } catch {
     // ignore
   }
-
   return NextResponse.json({ items: [] })
 }
