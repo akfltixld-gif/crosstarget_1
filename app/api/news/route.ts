@@ -1,26 +1,30 @@
 import { NextResponse } from "next/server"
 
-export const revalidate = 3600 // 1시간 캐시
+export const revalidate = 3600
 
 export async function GET() {
   try {
+    const rssUrl = encodeURIComponent(
+      "https://news.google.com/rss/search?q=모바일+광고&hl=ko&gl=KR&ceid=KR:ko"
+    )
     const res = await fetch(
-      "https://news.google.com/rss/search?q=모바일+광고+한국&hl=ko&gl=KR&ceid=KR:ko",
+      `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}&count=10`,
       { next: { revalidate: 3600 } }
     )
-    const xml = await res.text()
+    const json = await res.json()
 
-    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 8).map(m => {
-      const block = m[1]
-      const title = block.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1]
-        ?? block.match(/<title>(.*?)<\/title>/)?.[1] ?? ""
-      const link = block.match(/<link>(.*?)<\/link>/)?.[1]
-        ?? block.match(/<guid[^>]*>(.*?)<\/guid>/)?.[1] ?? "#"
-      const source = block.match(/<source[^>]*>(.*?)<\/source>/)?.[1] ?? ""
-      const pubDate = block.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? ""
-      const date = pubDate ? new Date(pubDate).toLocaleDateString("ko-KR", { month: "long", day: "numeric" }) : ""
-      return { title, link, source, date }
-    })
+    if (json.status !== "ok") throw new Error("rss2json error")
+
+    const items = (json.items ?? []).slice(0, 8).map((item: {
+      title: string, link: string, author: string, pubDate: string
+    }) => ({
+      title: item.title,
+      link: item.link,
+      source: item.author,
+      date: item.pubDate
+        ? new Date(item.pubDate).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })
+        : "",
+    }))
 
     return NextResponse.json({ items })
   } catch {
