@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
+import TopBar from "@/components/TopBar"
 
 const NO_SIDEBAR = ["/login", "/signup", "/pending"]
 
@@ -16,7 +17,10 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   return (
     <>
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-auto">{children}</div>
+      <div className="flex flex-1 flex-col overflow-auto">
+        <TopBar />
+        {children}
+      </div>
     </>
   )
 }
