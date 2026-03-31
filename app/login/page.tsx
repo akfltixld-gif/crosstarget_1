@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 
 interface NewsItem {
   title: string
+  summary: string
   link: string
   source: string
   date: string
@@ -20,16 +21,17 @@ export default function LoginPage() {
   const [error, setError]       = useState("")
   const [loading, setLoading]   = useState(false)
   const [news, setNews]         = useState<NewsItem[]>([])
+  const [clippingUrl, setClippingUrl] = useState("")
   const [newsLoading, setNewsLoading] = useState(true)
 
   useEffect(() => {
     fetch("/api/news")
       .then(r => r.json())
-      .then(d => { setNews(d.items ?? []); setNewsLoading(false) })
+      .then(d => { setNews(d.items ?? []); setClippingUrl(d.clippingUrl ?? ""); setNewsLoading(false) })
       .catch(() => setNewsLoading(false))
   }, [])
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.SyntheticEvent) {
     e.preventDefault()
     setError("")
     setLoading(true)
@@ -47,7 +49,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen">
       {/* 좌측: 로그인 폼 */}
-      <div className="flex w-full flex-col items-center justify-center bg-white px-8 lg:w-[420px] lg:shrink-0">
+      <div className="flex w-full flex-col items-center justify-center bg-white px-8 lg:w-[400px] lg:shrink-0 border-r border-gray-100">
         <div className="w-full max-w-sm">
           <div className="mb-10 flex flex-col gap-1">
             <Image src="/logo/CrossTarget_BI.png" alt="CrossTarget" width={160} height={40} className="h-10 w-auto object-contain" priority />
@@ -63,7 +65,7 @@ export default function LoginPage() {
               <input
                 type="email" value={email} onChange={e => setEmail(e.target.value)}
                 required placeholder="name@company.com"
-                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#EF4F23] focus:ring-2 focus:ring-orange-100 transition"
               />
             </div>
             <div>
@@ -71,7 +73,7 @@ export default function LoginPage() {
               <input
                 type="password" value={password} onChange={e => setPassword(e.target.value)}
                 required placeholder="••••••••"
-                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-800 outline-none focus:border-[#EF4F23] focus:ring-2 focus:ring-orange-100 transition"
               />
             </div>
 
@@ -94,52 +96,73 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 우측: 뉴스 피드 */}
-      <div className="hidden flex-1 flex-col bg-[#0f1729] px-12 py-12 lg:flex overflow-y-auto">
-        {/* 로고 */}
-        <div className="mb-10">
-          <Image src="/logo/CrossTarget_BI_w.png" alt="CrossTarget" width={160} height={40} className="h-10 w-auto object-contain" />
-          <p className="mt-2 text-xs text-white/40">광고 운영 대시보드</p>
-        </div>
-
-        {/* 헤더 */}
-        <div className="mb-6">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#EF4F23]">Industry News</p>
-          <h2 className="text-2xl font-bold text-white">마케팅 최신 뉴스</h2>
-          <p className="mt-1 text-xs text-white/40">출처: 아이보스 (i-boss.co.kr)</p>
-        </div>
-
-        {newsLoading ? (
-          <div className="space-y-5">
-            {[...Array(7)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="mb-2 h-4 w-4/5 rounded bg-white/10" />
-                <div className="h-3 w-1/4 rounded bg-white/5" />
-              </div>
-            ))}
+      {/* 우측: 마케팅 뉴스 */}
+      <div className="hidden flex-1 flex-col bg-gray-50 lg:flex overflow-y-auto">
+        <div className="flex flex-col h-full px-10 py-10">
+          {/* 헤더 */}
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#EF4F23]">Daily Marketing News</p>
+              <h2 className="text-2xl font-bold text-gray-900">오늘의 마케팅 뉴스</h2>
+              {news.length > 0 && news[0].date && (
+                <p className="mt-1 text-xs text-gray-400">{news[0].date} · 아이보스 뉴스클리핑</p>
+              )}
+            </div>
+            {clippingUrl && (
+              <a href={clippingUrl} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-gray-400 hover:text-[#EF4F23] transition-colors flex items-center gap-1">
+                전체보기
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
           </div>
-        ) : news.length === 0 ? (
-          <p className="text-sm text-white/40">뉴스를 불러올 수 없습니다.</p>
-        ) : (
-          <ul className="divide-y divide-white/10">
-            {news.map((item, i) => (
-              <li key={i} className="group py-4">
-                <a href={item.link} target="_blank" rel="noopener noreferrer" className="block">
-                  <p className="text-sm font-medium leading-snug text-white/85 group-hover:text-[#EF4F23] transition-colors line-clamp-2">
+
+          {/* 뉴스 카드 그리드 */}
+          {newsLoading ? (
+            <div className="grid grid-cols-2 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse rounded-2xl bg-white p-5 shadow-sm">
+                  <div className="mb-3 h-3 w-1/4 rounded bg-gray-100" />
+                  <div className="mb-2 h-4 w-full rounded bg-gray-100" />
+                  <div className="h-4 w-3/4 rounded bg-gray-100" />
+                  <div className="mt-3 h-3 w-full rounded bg-gray-100" />
+                  <div className="mt-1 h-3 w-2/3 rounded bg-gray-100" />
+                </div>
+              ))}
+            </div>
+          ) : news.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center">
+              <p className="text-sm text-gray-400">뉴스를 불러올 수 없습니다.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {news.map((item, i) => (
+                <a key={i} href={clippingUrl || item.link} target="_blank" rel="noopener noreferrer"
+                  className="group rounded-2xl bg-white p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#EF4F23]/10 text-[10px] font-bold text-[#EF4F23]">
+                      {i + 1}
+                    </span>
+                    <span className="text-xs text-gray-400">{item.source}</span>
+                  </div>
+                  <p className="text-sm font-semibold leading-snug text-gray-800 group-hover:text-[#EF4F23] transition-colors line-clamp-2 mb-2">
                     {item.title}
                   </p>
-                  <div className="mt-1.5 flex items-center gap-2 text-xs text-white/30">
-                    <span>{item.source}</span>
-                    {item.date && <><span>·</span><span>{item.date}</span></>}
-                  </div>
+                  {item.summary && (
+                    <p className="text-xs leading-relaxed text-gray-400 line-clamp-2 mt-auto">
+                      {item.summary}
+                    </p>
+                  )}
                 </a>
-              </li>
-            ))}
-          </ul>
-        )}
+              ))}
+            </div>
+          )}
 
-        <div className="mt-auto pt-8 text-xs text-white/20">
-          © 2025 CrossTarget. All rights reserved.
+          <div className="mt-auto pt-8 text-xs text-gray-300">
+            © 2025 CrossTarget. All rights reserved.
+          </div>
         </div>
       </div>
     </div>
