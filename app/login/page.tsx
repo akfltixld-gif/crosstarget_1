@@ -12,6 +12,7 @@ interface NewsItem {
   link: string
   source: string
   date: string
+  keyword?: string
 }
 
 export default function LoginPage() {
@@ -21,13 +22,12 @@ export default function LoginPage() {
   const [error, setError]       = useState("")
   const [loading, setLoading]   = useState(false)
   const [news, setNews]         = useState<NewsItem[]>([])
-  const [clippingUrl, setClippingUrl] = useState("")
   const [newsLoading, setNewsLoading] = useState(true)
 
   useEffect(() => {
     fetch("/api/news")
       .then(r => r.json())
-      .then(d => { setNews(d.items ?? []); setClippingUrl(d.clippingUrl ?? ""); setNewsLoading(false) })
+      .then(d => { setNews(d.items ?? []); setNewsLoading(false) })
       .catch(() => setNewsLoading(false))
   }, [])
 
@@ -104,19 +104,8 @@ export default function LoginPage() {
             <div>
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#EF4F23]">Daily Marketing News</p>
               <h2 className="text-2xl font-bold text-gray-900">오늘의 마케팅 뉴스</h2>
-              {news.length > 0 && news[0].date && (
-                <p className="mt-1 text-xs text-gray-400">{news[0].date} · 아이보스 뉴스클리핑</p>
-              )}
+              <p className="mt-1 text-xs text-gray-400">Google 알리미 · AI광고 · 네이버광고 · 카카오광고 · 구글광고 · 모바일광고</p>
             </div>
-            {clippingUrl && (
-              <a href={clippingUrl} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-gray-400 hover:text-[#EF4F23] transition-colors flex items-center gap-1">
-                전체보기
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            )}
           </div>
 
           {/* 뉴스 카드 그리드 */}
@@ -139,13 +128,15 @@ export default function LoginPage() {
           ) : (
             <div className="grid grid-cols-2 gap-4">
               {news.map((item, i) => (
-                <a key={i} href={clippingUrl || item.link} target="_blank" rel="noopener noreferrer"
+                <a key={i} href={item.link} target="_blank" rel="noopener noreferrer"
                   className="group rounded-2xl bg-white p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#EF4F23]/10 text-[10px] font-bold text-[#EF4F23]">
-                      {i + 1}
-                    </span>
-                    <span className="text-xs text-gray-400">{item.source}</span>
+                    {item.keyword && (
+                      <span className="rounded-full bg-[#EF4F23]/10 px-2 py-0.5 text-[10px] font-semibold text-[#EF4F23]">
+                        #{item.keyword}
+                      </span>
+                    )}
+                    <span className="ml-auto text-xs text-gray-400">{item.source}</span>
                   </div>
                   <p className="text-sm font-semibold leading-snug text-gray-800 group-hover:text-[#EF4F23] transition-colors line-clamp-2 mb-2">
                     {item.title}
