@@ -1,47 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 
-const BENCHMARKS = [
-  {
-    category: "디스플레이 배너",
-    metrics: [
-      { label: "평균 CTR", value: "0.08%", sub: "업계 평균" },
-      { label: "평균 CPM", value: "₩2,500", sub: "모바일 기준" },
-    ],
-  },
-  {
-    category: "동영상 광고",
-    metrics: [
-      { label: "평균 VTR", value: "28%", sub: "15초 기준" },
-      { label: "평균 CPV", value: "₩45", sub: "조회당 단가" },
-    ],
-  },
-  {
-    category: "카카오 비즈보드",
-    metrics: [
-      { label: "평균 CTR", value: "0.35%", sub: "피드 지면" },
-      { label: "평균 CPC", value: "₩180", sub: "클릭당 단가" },
-    ],
-  },
-  {
-    category: "앱 설치 캠페인",
-    metrics: [
-      { label: "평균 CVR", value: "3.2%", sub: "클릭→설치" },
-      { label: "평균 CPI", value: "₩2,800", sub: "설치당 단가" },
-    ],
-  },
-]
-
-const TRENDS = [
-  { icon: "📱", text: "국내 모바일 광고 시장 규모", value: "7.2조원", year: "2024" },
-  { icon: "📈", text: "전년 대비 모바일 광고 성장률", value: "+12.4%", year: "2024" },
-  { icon: "🎯", text: "전체 디지털 광고 중 모바일 비중", value: "68%", year: "2024" },
-]
+interface NewsItem {
+  title: string
+  link: string
+  source: string
+  date: string
+}
 
 export default function LoginPage() {
   const router = useRouter()
@@ -49,8 +19,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError]       = useState("")
   const [loading, setLoading]   = useState(false)
+  const [news, setNews]         = useState<NewsItem[]>([])
+  const [newsLoading, setNewsLoading] = useState(true)
 
-  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    fetch("/api/news")
+      .then(r => r.json())
+      .then(d => { setNews(d.items ?? []); setNewsLoading(false) })
+      .catch(() => setNewsLoading(false))
+  }, [])
+
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError("")
     setLoading(true)
@@ -115,7 +94,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 우측: 업계 벤치마크 */}
+      {/* 우측: 뉴스 피드 */}
       <div className="hidden flex-1 flex-col bg-[#0f1729] px-12 py-12 lg:flex overflow-y-auto">
         {/* 로고 */}
         <div className="mb-10">
@@ -124,43 +103,40 @@ export default function LoginPage() {
         </div>
 
         {/* 헤더 */}
-        <div className="mb-8">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#EF4F23]">Industry Benchmark</p>
-          <h2 className="text-2xl font-bold text-white">한국 모바일 광고 현황</h2>
-          <p className="mt-1 text-xs text-white/40">출처: IAB Korea, 한국방송광고진흥공사 (2024)</p>
+        <div className="mb-6">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#EF4F23]">Industry News</p>
+          <h2 className="text-2xl font-bold text-white">마케팅 최신 뉴스</h2>
+          <p className="mt-1 text-xs text-white/40">출처: 아이보스 (i-boss.co.kr)</p>
         </div>
 
-        {/* 시장 트렌드 */}
-        <div className="mb-8 grid grid-cols-3 gap-3">
-          {TRENDS.map((t, i) => (
-            <div key={i} className="rounded-2xl bg-white/5 p-4">
-              <p className="mb-2 text-xl">{t.icon}</p>
-              <p className="text-lg font-bold text-[#EF4F23]">{t.value}</p>
-              <p className="mt-1 text-xs leading-snug text-white/50">{t.text}</p>
-              <p className="mt-1 text-xs text-white/25">{t.year}년 기준</p>
-            </div>
-          ))}
-        </div>
-
-        {/* 매체별 벤치마크 */}
-        <div className="grid grid-cols-2 gap-4">
-          {BENCHMARKS.map((b, i) => (
-            <div key={i} className="rounded-2xl bg-white/5 p-5">
-              <p className="mb-4 text-xs font-semibold text-white/60">{b.category}</p>
-              <div className="space-y-3">
-                {b.metrics.map((m, j) => (
-                  <div key={j} className="flex items-end justify-between">
-                    <div>
-                      <p className="text-xs text-white/40">{m.label}</p>
-                      <p className="text-xs text-white/25">{m.sub}</p>
-                    </div>
-                    <p className="text-xl font-bold text-white">{m.value}</p>
-                  </div>
-                ))}
+        {newsLoading ? (
+          <div className="space-y-5">
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="mb-2 h-4 w-4/5 rounded bg-white/10" />
+                <div className="h-3 w-1/4 rounded bg-white/5" />
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : news.length === 0 ? (
+          <p className="text-sm text-white/40">뉴스를 불러올 수 없습니다.</p>
+        ) : (
+          <ul className="divide-y divide-white/10">
+            {news.map((item, i) => (
+              <li key={i} className="group py-4">
+                <a href={item.link} target="_blank" rel="noopener noreferrer" className="block">
+                  <p className="text-sm font-medium leading-snug text-white/85 group-hover:text-[#EF4F23] transition-colors line-clamp-2">
+                    {item.title}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-2 text-xs text-white/30">
+                    <span>{item.source}</span>
+                    {item.date && <><span>·</span><span>{item.date}</span></>}
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="mt-auto pt-8 text-xs text-white/20">
           © 2025 CrossTarget. All rights reserved.
