@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server"
 
 const PUBLIC_PATHS = ["/login", "/signup", "/pending", "/auth/callback"]
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
