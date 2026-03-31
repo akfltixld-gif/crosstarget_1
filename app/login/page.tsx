@@ -103,7 +103,7 @@ export default function LoginPage() {
           <div className="flex items-end justify-between mb-8">
             <div>
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#EF4F23]">Daily Marketing News</p>
-              <h2 className="text-2xl font-bold text-gray-900">오늘의 마케팅 뉴스</h2>
+              <h2 className="text-2xl font-bold text-gray-900">오늘의 마케팅/AI 뉴스</h2>
             </div>
           </div>
 
