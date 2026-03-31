@@ -12,7 +12,7 @@ export default function SignupPage() {
   const [loading, setLoading]   = useState(false)
   const [done, setDone]         = useState(false)
 
-  async function handleSignup(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError("")
     if (password.length < 8) { setError("비밀번호는 8자 이상이어야 합니다."); return }
@@ -29,22 +29,12 @@ export default function SignupPage() {
     if (signupError) {
       setError(signupError.message === "User already registered"
         ? "이미 등록된 이메일입니다."
-        : "회원가입 중 오류가 발생했습니다.")
+        : signupError.message)
       setLoading(false)
       return
     }
 
-    // 2. profiles 테이블에 pending 상태로 등록
-    if (data.user) {
-      await supabase.from("profiles").upsert({
-        id: data.user.id,
-        email,
-        name,
-        status: "pending",
-      })
-    }
-
-    // 3. 로그아웃 (승인 전 접근 차단)
+    // 로그아웃 (승인 전 접근 차단) - profiles는 트리거가 자동 생성
     await supabase.auth.signOut()
     setDone(true)
     setLoading(false)
