@@ -59,16 +59,37 @@ export default function AgencyFeePage() {
   function advName(id: string) { return advertisers.find(a => a.id === id)?.name ?? "-" }
   function agencyById(id: string) { return agencies.find(a => a.id === id) }
 
+  // campaign.agencyId 먼저, 없으면 advertiserId → advertiser.agencyId 로 찾기
+  function agencyForCampaign(c: Campaign): Agency | undefined {
+    if (c.agencyId) {
+      const ag = agencyById(c.agencyId)
+      if (ag) return ag
+    }
+    const adv = advertisers.find(a => a.id === c.advertiserId)
+    if (adv?.agencyId) return agencyById(adv.agencyId)
+    return undefined
+  }
+
   const filtered = campaigns.filter(c => overlapsMonth(c, month))
 
-  // 대행사별 그룹핑 (campaign.agencyId 기준)
+  // 대행사별 그룹핑
   const agencyMap = new Map<string, { agency: Agency; campaigns: Campaign[] }>()
   for (const c of filtered) {
-    const ag = agencyById(c.agencyId)
+    const ag = agencyForCampaign(c)
     if (!ag) continue
     if (!agencyMap.has(ag.id)) agencyMap.set(ag.id, { agency: ag, campaigns: [] })
     agencyMap.get(ag.id)!.campaigns.push(c)
   }
+  // 대행사 미지정 캠페인도 별도 그룹으로 포함
+  const unassigned = filtered.filter(c => !agencyForCampaign(c))
+  if (unassigned.length > 0) {
+    const fakeId = "__unassigned__"
+    agencyMap.set(fakeId, {
+      agency: { id: fakeId, name: "대행사 미지정", contactName: "", email: "", phone: "" },
+      campaigns: unassigned,
+    })
+  }
+
   const groups = Array.from(agencyMap.values())
   const visible = selectedAgencyId ? groups.filter(g => g.agency.id === selectedAgencyId) : groups
 
@@ -166,10 +187,6 @@ export default function AgencyFeePage() {
         {filtered.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white py-16 text-center text-sm text-gray-400">
             해당 월에 집행된 캠페인이 없습니다.
-          </div>
-        ) : groups.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white py-16 text-center text-sm text-gray-400">
-            대행사가 연결된 캠페인이 없습니다. 캠페인 집행 현황에서 대행사를 먼저 등록해주세요.
           </div>
         ) : (
           <>
