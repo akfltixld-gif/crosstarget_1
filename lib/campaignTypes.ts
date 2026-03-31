@@ -72,6 +72,7 @@ export interface Campaign {
   managerId: string
   status: CampaignStatus
   createdAt: string
+  agencyFeeRate?: number // 대행수수료율 (%)
 }
 
 export function getTotalMarkup(mediaMarkup: number, dmpFeeRate: number, agencyFeeRate: number): number {

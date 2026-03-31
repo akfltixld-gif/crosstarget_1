@@ -335,6 +335,7 @@ export default function CampaignStatusPage() {
                     <th className="px-4 py-3 text-right">소진 / 소진율</th>
                     <th className="px-4 py-3 text-center">진행률</th>
                     <th className="px-4 py-3 text-center">정산 월</th>
+                    <th className="px-4 py-3 text-center">대행수수료율</th>
                     <th className="px-4 py-3 text-center">담당자</th>
                     <th className="px-4 py-3 text-center">상태</th>
                     <th className="px-4 py-3 text-center">관리</th>
@@ -342,7 +343,7 @@ export default function CampaignStatusPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.length === 0 && (
-                    <tr><td colSpan={11} className="py-12 text-center text-sm text-gray-400">조건에 맞는 캠페인이 없습니다.</td></tr>
+                    <tr><td colSpan={12} className="py-12 text-center text-sm text-gray-400">조건에 맞는 캠페인이 없습니다.</td></tr>
                   )}
                   {filtered.map(c => {
                     const totals    = getCampaignTotals(c)
@@ -436,6 +437,21 @@ export default function CampaignStatusPage() {
                           </td>
 
                           <td className="px-4 py-3 text-center text-xs text-gray-600">{c.settlementMonth}</td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-0.5">
+                              <input
+                                type="number" min={0} max={100} step={0.1}
+                                value={c.agencyFeeRate ?? ""}
+                                placeholder="0"
+                                onChange={e => {
+                                  const val = e.target.value === "" ? undefined : Number(e.target.value)
+                                  saveCampaigns(campaigns.map(x => x.id === c.id ? { ...x, agencyFeeRate: val } : x))
+                                }}
+                                className="w-14 rounded-md border border-gray-200 px-1.5 py-1 text-center text-xs text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-100"
+                              />
+                              <span className="text-xs text-gray-400">%</span>
+                            </div>
+                          </td>
                           <td className="px-4 py-3 text-center text-xs text-gray-600">{opName(c.managerId)}</td>
 
                           {/* 상태 */}
