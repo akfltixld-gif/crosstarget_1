@@ -51,9 +51,9 @@ export default function LoginPage() {
       {/* 좌측: 로그인 폼 */}
       <div className="flex w-full flex-col items-center justify-center bg-white px-8 lg:w-[400px] lg:shrink-0 border-r border-gray-100">
         <div className="w-full max-w-sm">
-          <div className="mb-10 flex flex-col gap-1">
+          <div className="mb-10 flex flex-col items-center gap-2">
             <Image src="/logo/CrossTarget_BI.png" alt="CrossTarget" width={160} height={40} className="h-10 w-auto object-contain" priority />
-            <p className="mt-2 text-xs text-gray-400">광고 운영 대시보드</p>
+            <p className="text-sm font-bold text-gray-600">광고 운영 대시보드</p>
           </div>
 
           <h1 className="mb-1 text-xl font-bold text-gray-900">로그인</h1>
@@ -104,7 +104,6 @@ export default function LoginPage() {
             <div>
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#EF4F23]">Daily Marketing News</p>
               <h2 className="text-2xl font-bold text-gray-900">오늘의 마케팅 뉴스</h2>
-              <p className="mt-1 text-xs text-gray-400">Google 알리미 · AI광고 · 네이버광고 · 카카오광고 · 구글광고 · 모바일광고</p>
             </div>
           </div>
 
@@ -151,9 +150,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="mt-auto pt-8 text-xs text-gray-300">
-            © 2025 CrossTarget. All rights reserved.
-          </div>
         </div>
       </div>
     </div>

@@ -12,15 +12,20 @@ const FEEDS = [
 
 function stripHtml(html: string) {
   return html
-    .replace(/<[^>]+>/g, "")
+    // 엔티티 먼저 디코딩
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+    .replace(/&#\d+;/g, "")
+    // 그 다음 HTML 태그 제거
+    .replace(/<[^>]+>/g, "")
     .replace(/\s+/g, " ").trim()
 }
 
 function extractRealUrl(googleUrl: string) {
   try {
-    const m = googleUrl.match(/[?&]url=([^&]+)/)
+    // XML에서 &amp; → & 디코딩 후 url= 파라미터 추출
+    const decoded = googleUrl.replace(/&amp;/g, "&")
+    const m = decoded.match(/[?&]url=([^&]+)/)
     if (m) return decodeURIComponent(m[1])
   } catch { /* ignore */ }
   return googleUrl
