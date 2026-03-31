@@ -10,8 +10,13 @@ export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // 환경변수 없으면 통과
+  // 환경변수 없으면 로그인으로
   if (!supabaseUrl || !supabaseKey) {
+    const pathname = request.nextUrl.pathname
+    const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+    if (!isPublic) {
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
     return response
   }
 
@@ -43,8 +48,11 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/", request.url))
     }
   } catch {
-    // 인증 오류 시 통과
-    return response
+    const pathname = request.nextUrl.pathname
+    const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+    if (!isPublic) {
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
   }
 
   return response
