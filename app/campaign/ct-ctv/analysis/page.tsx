@@ -53,7 +53,7 @@ const DEFAULT_SETTINGS: Settings = {
 }
 
 interface AlertMsg {
-  kind: 'warn' | 'up'
+  kind: 'critical' | 'warn' | 'up'
   cat: 'ctr' | 'spend' | 'profit' | 'vtr' | 'deadline'
   text: string
 }
@@ -221,9 +221,11 @@ function KpiCard({ label, todayVal, yestVal, threshold, decimals = 2, note, benc
 // 이상/상승 아이콘 with hover tooltip
 function AlertIcon({ msgs }: { msgs: AlertMsg[] }) {
   const [show, setShow] = useState(false)
-  const warns = msgs.filter(m => m.kind === 'warn')
-  const ups   = msgs.filter(m => m.kind === 'up')
-  const hasWarn = warns.length > 0
+  const criticals = msgs.filter(m => m.kind === 'critical')
+  const warns     = msgs.filter(m => m.kind === 'warn')
+  const ups       = msgs.filter(m => m.kind === 'up')
+  const hasCritical = criticals.length > 0
+  const hasWarn     = warns.length > 0
 
   if (msgs.length === 0) {
     return (
@@ -238,12 +240,14 @@ function AlertIcon({ msgs }: { msgs: AlertMsg[] }) {
     <span className="relative inline-flex items-center justify-center">
       <button
         className={`inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors ${
-          hasWarn ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-blue-100 text-blue-500 hover:bg-blue-200'
+          hasCritical ? 'animate-pulse bg-red-600 text-white hover:bg-red-700'
+          : hasWarn   ? 'bg-red-100 text-red-500 hover:bg-red-200'
+          : 'bg-blue-100 text-blue-500 hover:bg-blue-200'
         }`}
         onMouseEnter={() => setShow(true)}
         onMouseLeave={() => setShow(false)}
       >
-        {hasWarn ? (
+        {(hasCritical || hasWarn) ? (
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
@@ -254,7 +258,20 @@ function AlertIcon({ msgs }: { msgs: AlertMsg[] }) {
         )}
       </button>
       {show && (
-        <div className="absolute bottom-full right-0 mb-2 z-50 w-52 rounded-lg border border-gray-200 bg-white shadow-lg p-3">
+        <div className="absolute bottom-full right-0 mb-2 z-50 w-60 rounded-lg border border-gray-200 bg-white shadow-lg p-3">
+          {criticals.length > 0 && (
+            <>
+              <p className="text-[11px] font-bold text-red-700 mb-1.5">🚨 광고 미게재 감지</p>
+              <div className="space-y-1 mb-2">
+                {criticals.map((m, i) => (
+                  <div key={i} className="flex items-center gap-1.5 rounded bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0 animate-pulse" />
+                    <span>{m.text}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
           {warns.length > 0 && (
             <>
               <p className="text-[11px] font-semibold text-red-600 mb-1.5">이상 감지</p>
@@ -400,6 +417,13 @@ export default function CtCtvAnalysisPage() {
   // 캠페인별 이상/상승 메시지 생성
   function getAlertMessages(c: CampaignSnapshot): AlertMsg[] {
     const msgs: AlertMsg[] = []
+
+    // 🚨 노출/비용 0 — 광고 미게재 (최우선 critical)
+    if (c.today.impressions === 0)
+      msgs.push({ kind: 'critical', cat: 'spend', text: '🚨 노출 0 — 광고가 게재되지 않고 있습니다' })
+    if (c.today.spend === 0)
+      msgs.push({ kind: 'critical', cat: 'spend', text: '🚨 비용 0 — 광고 소진이 없습니다' })
+
     const ctrT = calcCTR(c.today.clicks, c.today.impressions)
     const ctrY = calcCTR(c.yesterday.clicks, c.yesterday.impressions)
     const ctrD = ctrT - ctrY
@@ -699,12 +723,13 @@ export default function CtCtvAnalysisPage() {
                   const prBench     = (c.type === 'display' && prT < settings.displayProfitMin) || (c.type === 'video' && prT < settings.videoProfitMin)
                   const vtrBench    = (c.type === 'video' && vtrT < settings.videoVtrMin) || (c.type === 'ctv' && vtrT < settings.ctvVtrMin)
                   const alertMsgs   = getAlertMessages(c)
-                  const hasAlert    = alertMsgs.some(m => m.kind === 'warn')
+                  const hasAlert    = alertMsgs.some(m => m.kind === 'warn' || m.kind === 'critical')
+                  const hasCritical = alertMsgs.some(m => m.kind === 'critical')
 
                   const ddayInfo = dDay(c.endDate)
 
                   return (
-                    <tr key={c.id} className={`border-b border-gray-50 ${hasAlert ? 'bg-red-50/40' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
+                    <tr key={c.id} className={`border-b border-gray-50 ${hasCritical ? 'bg-red-100/60' : hasAlert ? 'bg-red-50/40' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                       {/* 캠페인명 + 대행사 */}
                       <td className="px-4 py-3 max-w-[170px]">
                         <div className="font-medium text-gray-800 truncate">{c.name}</div>

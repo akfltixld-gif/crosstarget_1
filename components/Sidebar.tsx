@@ -77,7 +77,9 @@ export default function Sidebar() {
     <aside className="flex h-full w-56 flex-col border-r border-gray-200 bg-white">
       {/* 로고 */}
       <div className="border-b border-gray-100 px-5 py-4 space-y-1">
-        <Image src="/logo/CrossTarget_BI.png" alt="CrossTarget" width={140} height={36} className="h-8 w-auto object-contain" priority />
+        <Link href="/campaign/ct-ctv/analysis">
+          <Image src="/logo/CrossTarget_BI.png" alt="CrossTarget" width={140} height={36} className="h-8 w-auto object-contain" priority />
+        </Link>
         <p className="text-xs font-semibold text-gray-700">광고 운영 대시보드</p>
       </div>
 
