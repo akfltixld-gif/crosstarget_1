@@ -26,7 +26,6 @@ const navItems: NavItem[] = [
   {
     label: "정산 리포트",
     items: [
-      { label: "대행사별 대행수수료", href: "/settlement/agency-fee" },
       { label: "DMP 수수료", href: "/settlement/dmp-fee" },
     ],
   },
